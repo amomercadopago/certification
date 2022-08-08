@@ -16,11 +16,11 @@
         </div>
         <figcaption class="info-wrap">
           <h6 class="title text-dots">
-            <RouterLink :to="{ name: 'detail', params: { id: product.id }}">{{ product.title }}</RouterLink>
+            <RouterLink :to="{ path: '/', query: { page: 'detail', id: product.id }}">{{ product.title }}</RouterLink>
           </h6>
           <div class="action-wrap">
             <div class="price-wrap h5">
-              <span class="price-new">{{ product.currency }}{{ product.unit_price }}</span>
+              <span class="price-new">{{ product.unit_price.toLocaleString() }} {{ product.currency }}</span>
             </div>
           </div>
         </figcaption>

@@ -1,28 +1,52 @@
-<script setup>
-import { RouterLink, RouterView } from 'vue-router'
-</script>
-
 <template>
   <div id="page-container">
     <div class="header-container">
-      <img src="/banner.jpg"/>
+      <img src="https://username-mp-ecommerce-php.herokuapp.com/assets/images/banner.jpg"/>
     </div>
     <div id="content-wrap">
       <br />
       <div class="col-lg-8 main-section p-3 bg-white">
-        <RouterView />
+        <component :is="currentComponent" />
       </div>
       <br />
       <br />
     </div>
     <footer id="footer" class="bg-secondary">
       <div class="card-body text-left">
-        <img src="/logo.png" style="width: 100px"/>
+        <img src="https://username-mp-ecommerce-php.herokuapp.com/assets/images/logo.png" style="width: 100px"/>
         <h6 style="color: white; display:inline"> | Workshop Resource</h6>
       </div>
     </footer>
   </div>
 </template>
+
+<script>
+import Catalog from './views/Catalog.vue';
+import Detail from './views/Detail.vue';
+import Payment from './views/Payment.vue';
+
+export default {
+  name: 'app',
+  components: { Catalog, Detail, Payment },
+  computed: {
+    currentComponent() {
+      const page = this.$route?.query?.page;
+
+      switch (page) {
+        case 'detail':
+        case 'payment':
+          return page;
+        default:
+          return 'catalog';
+      }
+    },
+  },
+  data() {
+    return {
+    };
+  },
+};
+</script>
 
 <style>
   .as-filter-button-text {

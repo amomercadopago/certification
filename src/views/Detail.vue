@@ -6,21 +6,21 @@
     v-if="product"
     class="row m-0"
   >
-    <div class="col-lg-6 left-side-product-box pb-3">
+    <div class="col-lg-4 left-side-product-box pb-3">
       <img
         id="product_img"
         class="border p-3"
         :src="product.picture_url"
       >
     </div>
-    <div class="col-lg-6">
+    <div class="col-lg-8">
       <div class="right-side-pro-detail border p-3 m-0">
         <div class="row">
           <div class="col-lg-12">
             <p id="product_title" class="m-0 p-0"> {{ product.title }} </p>
           </div>
           <div class="col-lg-12">
-            <p id="product_price" class="m-0 p-0 price-pro"> {{ product.currency }}{{ product.unit_price }} </p>
+            <p id="product_price" class="m-0 p-0 price-pro"> {{ product.unit_price.toLocaleString() }} {{ product.currency }} </p>
             <hr class="p-0 m-0">
           </div>
           <div class="col-lg-3">
@@ -35,6 +35,18 @@
           </div>
           <div class="col-lg-12 mt-2">
             <hr class="p-0 m-0">
+            <div class="progress">
+              <div
+                class="progress-bar"
+                role="progressbar"
+                :aria-valuenow="progress"
+                :style="`width: ${progress}%;`"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                {{ progress }}%
+              </div>
+            </div>
             <div class="form-group">
               <label for="name" class="form-label">Name</label>
               <input type="text" class="form-control form-control-sm" id="name" v-model="payer.name">
@@ -73,7 +85,20 @@
                 <input type="number" class="form-control form-control-sm" id="postIndex" v-model.number="payer.address.postIndex">
               </div>
             </div>
-            <button class="button" v-if="!formValid" @click="createPreference">En la cesta</button>
+            <button
+              v-if="!preferenceId"
+              class="button"
+              :disabled="isLoading || !formValid"
+              @click="createPreference"
+            >
+              En la cesta
+            </button>
+            <div v-if="isError" class="alert alert-warning alert-dismissible fade show" role="alert">
+              <strong>Oops!</strong> Something went wront! Try again later...
+              <button @click="isError = false" type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
           </div>
           <div class="col-lg-12 mt-2">
             <hr class="p-0 m-0">
@@ -92,8 +117,26 @@ import axios from 'axios';
 
 export default {
   name: 'detail',
+  watch: {
+    preferenceId(value) {
+      if (!value || !this.mp) {
+        return;
+      }
+
+      this.mp.checkout({
+        preference: {
+          id: value,
+        },
+        render: {
+          container: '.cho-container',
+          label: 'Pagar la compra',
+        }
+      });
+    },
+  },
   data() {
     return {
+      mp: null,
       quantity: 1,
       preferenceId: null,
       payer: {
@@ -110,26 +153,18 @@ export default {
           postIndex: '',
         },
       },
+      isLoading: false,
+      isError: false,
     };
   },
   mounted() {
-    const mp = new MercadoPago('APP_USR-ee70a80f-0848-4b7f-991d-497696acbdcd', {
+    this.mp = new MercadoPago('APP_USR-ee70a80f-0848-4b7f-991d-497696acbdcd', {
       locale: 'en-US'
-    });
-
-    mp.checkout({
-      preference: {
-        id: '469485398-2a8901c0-1ade-4c20-805e-3962547a1ebe',
-      },
-      render: {
-        container: '.cho-container',
-        label: 'Pagar la compra',
-      }
     });
   },
   computed: {
     productId() {
-      return this.$route?.params?.id;
+      return this.$route?.query?.id;
     },
     product() {
       if (!this.productId) {
@@ -144,36 +179,40 @@ export default {
         && this.payer.email?.length
         && this.payer.phone.area_code
         && this.payer.phone.number
-        && this.payer.address.street?.length
-        && this.payer.address.homeNumber?.length
-        && this.payer.address.postIndex
         && this.quantity > 0
       ;
+    },
+    progress() {
+      const needFileds = [
+        this.payer.name,
+        this.payer.surname,
+        this.payer.email,
+        this.payer.phone.number,
+      ];
+
+      return Math.floor(needFileds.filter((item) => item.toString().length).length / needFileds.length * 100) ;
     },
   },
   methods: {
     createPreference() {
       if (!this.formValid) {
-        // return false;
+        return false;
       }
-      axios.defaults.headers.post = {
-        'Content-Type': 'application/json;charset=UTF-8',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': '*',
-      };
-
+      this.isLoading = true;
+      this.isError = false;
       axios({
         method: 'post',
-        url: 'https://t1.amocrm.vpool.qsoft.ru/preference/create',
-        // url: '/api/preference/create',
+        url: 'https://mercado-pago.amocrmmarket.com/preference/create',
         data: {
           payer: this.payer,
-          products: [this.product],
+          products: [{ ...this.product, quantity: this.quantity }],
         },
       })
         .then(({ data }) => {
-          console.log(data);
+          this.preferenceId = data.data.id;
         })
+        .catch(() => this.isError = true)
+        .finally(() => this.isLoading = false)
       ;
     },
   },
